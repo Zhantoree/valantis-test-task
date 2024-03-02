@@ -1,7 +1,7 @@
 import md5 from 'md5'
 import axios from "axios";
 
-// Заданный пароль и URL API
+// URL API
 const password = "Valantis";
 const apiUrl = "https://api.valantis.store:41000/";
 
@@ -17,25 +17,7 @@ function generateAuthString(password) {
     return authString;
 }
 
-// Функция для выполнения запроса к API с авторизацией
-async function fetchData() {
-    const authString = generateAuthString(password);
-    try {
-        const response = await axios.post(apiUrl, {
-                "action": "get_ids",
-                "params": {"ids": null}
-            },
-            {
-                headers: {
-                    'X-Auth': authString
-                }
-            }
-        );
-    } catch (error) {
-        console.log(error)
-    }
-}
-
+// Получения айдишек по блокам из 4 страниц
 export async function getIds(nextPages = 1) {
     if (nextPages === 0) {
         console.log("nextPages cannot be 0. At least 1")
@@ -57,38 +39,33 @@ export async function getIds(nextPages = 1) {
         const result = new Set(response.data.result)
         return [...result]
     } catch (e) {
-        console.log(e)
+        console.log(e.message)
     }
 }
 
+// Получение товаров
 export async function getItems(ids) {
     const authString = generateAuthString(password)
     let result = []
 
     try {
-        for (let i = 0; i<ids.length/100; i++){
-            let start = i*100
-            let end = (i+1)*100
-            if((ids.length - start) <= 100){
-                end = (ids.length - start) * (-1)
-            }
-            const response = await axios.post(apiUrl, {
-                    "action": "get_items",
-                    "params": {"ids": end > 0 ? ids.slice(start, end) : ids.slice(end)}
-                },
-                {
-                    headers: {
-                        'X-Auth': authString
-                    }
+        const response = await axios.post(apiUrl, {
+                "action": "get_items",
+                "params": {"ids": ids}
+            },
+            {
+                headers: {
+                    'X-Auth': authString
                 }
-            )
-            result = [...result, ...response.data.result]
-        }
+            }
+        )
+        result = [...result, ...response.data.result]
+
 
         result = new Set(result)
         return [...result]
     } catch (e) {
-        console.log(e)
+        console.log(e.message)
     }
 }
 
@@ -96,6 +73,6 @@ export async function getItems(ids) {
 let ids;
 let items
 await getIds().then(res => ids = res)
-console.log(ids)
-await getItems(ids).then(res => items = res)
-console.log(items)
+console.log("ids", ids)
+await getItems(ids.slice(0, 50)).then(res => items = res)
+console.log("items", items)
